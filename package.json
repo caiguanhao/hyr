@@ -1,0 +1,34 @@
+{
+  "name": "hengyirong",
+  "version": "1.0.0",
+  "description": "Heng Yi Rong",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:caiguanhao/hyr.git"
+  },
+  "keywords": [
+    "HYR"
+  ],
+  "author": "Cai Guanhao <caiguanhao@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/caiguanhao/hyr/issues"
+  },
+  "homepage": "https://github.com/caiguanhao/hyr",
+  "dependencies": {
+    "angular": "^1.5.0-beta.0",
+    "angular-local-storage": "^0.2.2",
+    "angular-route": "^1.5.0-beta.0",
+    "body-parser": "^1.14.0",
+    "bootstrap": "^3.3.5",
+    "express": "^4.13.3",
+    "htmlparser2": "^3.8.3",
+    "lodash": "^3.10.1",
+    "q": "^1.4.1",
+    "ws": "^0.8.0"
+  }
+}
