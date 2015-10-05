@@ -18,6 +18,41 @@ directive('captcha', function (
     }
   };
 }).
+directive('info', function (
+  $http,
+  $interval
+) {
+  function timeAgo (time) {
+    var diff = (new Date() - new Date(time)) / 1000;
+    return diff < 1 && '刚刚' || (
+      diff < 60 && Math.floor(diff) + '秒' ||
+      diff < 120 && '1分钟' ||
+      diff < 3600 && Math.floor(diff / 60) + '分钟' ||
+      diff < 7200 && '1小时' ||
+      diff < 86400 && Math.floor(diff / 3600) + '小时') + '前';
+  }
+
+  return {
+    scope: {
+      info: '='
+    },
+    link: function ($scope, $element, $attrs) {
+      var info = $scope.info;
+      if (/^[0-9-]+T[0-9:.]+Z$/.test(info)) {
+        $element.text(timeAgo(info));
+        $element.attr('title', new Date(info));
+        var timer = $interval(function () {
+          $element.text(timeAgo(info));
+        }, 1000);
+        $element.on('$destroy', function() {
+          $interval.cancel(timer);
+        });
+      } else {
+        $element.text(info);
+      }
+    }
+  };
+}).
 config(function (
   $routeProvider
 ) {
@@ -41,7 +76,7 @@ config(function (
           }
         }).then(function (res) {
           _.each(res.data, function (session) {
-            if (!angular.isArray(session.info) || session.info.length === 0) {
+            if (!(session.balance > 10000)) {
               return;
             }
             var quantity = Math.floor(session.balance / 10000);
@@ -56,10 +91,10 @@ config(function (
             session.quantities = quantities;
           });
           _.each(sessions, function (session) {
-            session.info = _.find(res.data, { session: session.session });
+            _.assign(session, _.find(res.data, { session: session.session }));
           });
-          var removed = _.remove(sessions, function (session) {
-            return session.info.balance < 0;
+          var removed = _.remove(sessions, function (sess) {
+            return !sess.alive;
           });
           if (removed.length) {
             Session.save(sessions);
@@ -141,6 +176,27 @@ controller('MainCtrl', function (
     $scope.$apply(function () {
       self.status.add(date + msg.data);
     });
+  };
+
+  this.next = function () {
+    var go = this.sessions.indexOf(this.session) + 1;
+    if (go >= this.sessions.length) {
+      go = 0;
+    }
+    this.session = this.sessions[go];
+  };
+
+  var names = {};
+  _.each(this.sessions, function (sess) {
+    var real = _.find(sess.info, { key: '真实姓名' });
+    names[sess.name] = real ? real.value : undefined;
+  });
+  this.nameFor = function (sess) {
+    var ret = sess.name;
+    if (names[sess.name]) {
+      ret += ' - ' + names[sess.name];
+    }
+    return ret;
   };
 
   this.login = function () {

@@ -1,6 +1,9 @@
+var _ = require('lodash');
 var Q = require('q');
 var lib = require('./lib');
 var htmlparser = require("htmlparser2");
+
+module.exports = getInfo;
 
 function getBalance (html) {
   var lastPText;
@@ -63,7 +66,7 @@ function getAccountInfo (html) {
         }
       }
     },
-    onclosetag: function (name, attrs) {
+    onclosetag: function (name) {
       if (info && name === 'table') {
         range = -1;
       }
@@ -108,14 +111,86 @@ function getInfo (session) {
   ]).then(function (ret) {
     return Q.all([
       getBalance(ret[0].body),
+      getRecords(ret[0].body),
       getAccountInfo(ret[1].body)
     ]);
   }).then(function (ret) {
+    var info = ret[0].concat(ret[2]);
+    var alive = !!info.length;
+    info.unshift({
+      key: '更新时间',
+      value: new Date()
+    });
     return {
+      alive: alive,
       session: session,
-      info: ret[0].concat(ret[1])
+      records: ret[1],
+      info: info
     };
   });
 }
 
-module.exports = getInfo;
+function getRecords (html) {
+  var get = 0;
+  var ret = [{
+    key: '定利宝出借记录',
+    value: []
+  }, {
+    key: '散标出借记录',
+    value: []
+  }];
+  var tableIndex = -1;
+  var deferred = Q.defer();
+  var parser = new htmlparser.Parser({
+    onopentag: function (name, attrs) {
+      if (get === 0 && name === 'table' && /sy_tabel_jilv/.test(attrs.class)) {
+        get = 1;
+        tableIndex++;
+      }
+      if (get > 0) {
+        if (name === 'th') {
+          get = 2;
+        } else if (name === 'td') {
+          if (get < 3) get = 3;
+        } else {
+          get = 1;
+        }
+      }
+    },
+    onclosetag: function (name) {
+      if (name === 'table') {
+        get = 0;
+      }
+    },
+    ontext: function (text) {
+      if (get < 2) return;
+      text = text.trim();
+      if (!text) return;
+      if (get === 2) {
+        ret[tableIndex].value.push({
+          key: text
+        });
+      } else {
+        ret[tableIndex].value[get - 3].value = text;
+        get++;
+      }
+    },
+    onend: function () {
+      _.each(ret, function (r) {
+        var hasValue = 0;
+        _.each(r.value, function (sr) {
+          if (sr.value) hasValue++;
+        });
+        if (hasValue < 2) {
+          r.value = [];
+        }
+      });
+      deferred.resolve(ret);
+    }
+  }, {
+    decodeEntities: true
+  });
+  parser.write(html);
+  parser.end();
+  return deferred.promise;
+}

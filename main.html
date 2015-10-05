@@ -1,9 +1,4 @@
 <div class="row">
-  <div class="col-sm-12">
-    <div class="page-header">
-      <p class="lead">Heng Yi Rong</p>
-    </div>
-  </div>
   <div class="col-sm-8">
     <form class="form-horizontal" ng-submit="main.login()">
       <div class="form-group">
@@ -40,9 +35,13 @@
     <form class="form-horizontal" ng-if="main.sessions.length">
       <div class="form-group">
         <label for="captcha" class="col-sm-2 control-label">已登录</label>
-        <div class="col-sm-8">
+        <div class="col-sm-6">
           <select class="form-control" ng-model="main.session"
-            ng-options="session as session.name for session in main.sessions"></select>
+            ng-options="session as main.nameFor(session) for session in main.sessions"></select>
+        </div>
+        <div class="col-sm-2">
+          <button type="button" class="btn btn-default"
+            ng-disabled="main.loggingin" ng-click="main.next()">下一个</button>
         </div>
         <div class="col-sm-2">
           <button type="button" class="btn btn-default"
@@ -62,15 +61,27 @@
             ng-options="type.value as type.name for type in main.types"></select>
         </div>
         <div class="col-sm-2">
-          <select class="form-control" ng-model="main.session.info.quantity" ng-disabled="!main.session.info.quantities.length"
-            ng-options="quantity.value as quantity.name for quantity in main.session.info.quantities"></select>
+          <select class="form-control" ng-model="main.session.quantity" ng-disabled="!main.session.quantities.length"
+            ng-options="quantity.value as quantity.name for quantity in main.session.quantities"></select>
         </div>
         <div class="col-sm-2">
-          <button type="submit" class="btn btn-default" ng-disabled="!main.session.info.quantities.length"
+          <button type="submit" class="btn btn-default" ng-disabled="!main.session.quantities.length"
             ng-bind="main.started ? '结束抢' : '开始抢'"></button>
         </div>
       </div>
     </form>
+    <table class="table" ng-repeat="record in main.session.records"
+      ng-if="record.value.length">
+      <caption class="text-center" ng-bind="record.key"></caption>
+      <tbody>
+        <tr>
+          <td ng-repeat="item in record.value" ng-bind="item.key"></td>
+        </tr>
+        <tr>
+          <td ng-repeat="item in record.value" ng-bind="item.value"></td>
+        </tr>
+      </tbody>
+    </table>
     <div class="form-group" ng-if="main.status.statuses.length">
       <pre ng-bind="main.status.stringify()"></pre>
     </div>
@@ -79,10 +90,10 @@
     <div ng-if="main.session.info">
       <table class="table">
         <tbody>
-          <tr ng-repeat="item in main.session.info.info" ng-if="item.value">
+          <tr ng-repeat="item in main.session.info" ng-if="item.value">
             <td ng-bind="item.key"></td>
             <td>
-              <span ng-bind="item.value"></span>
+              <span info="item.value"></span>
             </td>
           </tr>
         </tbody>
