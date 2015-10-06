@@ -44,7 +44,13 @@ function loopStart () {
   var sessions = Object.keys(loopStartData);
   var promises = sessions.map(function (session) {
     var url = '/dtpay/confirmationpay.html';
-    return lib.request('POST', url, loopStartData[session], {
+    var data = loopStartData[session];
+    return lib.request('POST', url, {
+      'id': data.product,
+      'shouyi': data.type,
+      'money': data.quantity,
+      'authcode': ''
+    }, {
       'Cookie': 'PHPSESSID=' + session
     }).then(function (resp) {
       sendMessage(session, resp.body);
@@ -55,20 +61,18 @@ function loopStart () {
   Q.all(promises).finally(function () {
     setTimeout(function () {
       loopStart();
-    }, 100);
+    }, 1000);
   });
 }
 
 loopStart();
 
 app.post('/start', bodyParser.json(), function (req, res, next) {
-  var data = {
-    'id': req.body.product + '',
-    'shouyi': req.body.type + '',
-    'money': req.body.quantity + '',
-    'authcode': ''
+  loopStartData[req.body.session] = {
+    product: req.body.product + '',
+    type: req.body.type + '',
+    quantity: req.body.quantity + ''
   };
-  loopStartData[req.body.session] = data;
   res.send({ message: 'OK' });
 });
 
@@ -86,11 +90,38 @@ app.get('/info', function (req, res, next) {
   }
   Q.all(_.map(sessions, function (session) {
     return getInfo(session);
-  })).then(function (data) {
-    _.each(data, function (sess) {
-      sess.started = !!loopStartData[sess.session];
+  })).then(function (sessions) {
+    _.each(sessions, function (sess) {
+      var quantity = null;
+      var quantities = null;
+      var product = null;
+      var type = null;
+
+      if (sess.balance > 10000) {
+        quantity = Math.floor(sess.balance / 10000);
+        quantities = [];
+        _.times(quantity, function (n) {
+          quantities.push({
+            name: (n + 1) + '万',
+            value: n + 1
+          });
+        });
+      }
+
+      var data = loopStartData[sess.session];
+      if (data) {
+        product = data.product;
+        type = data.type;
+        quantity = +data.quantity || quantity;
+      }
+      sess.started = !!data;
+      sess.quantities = quantities;
+      sess.quantity = quantity;
+      sess.product = product;
+      sess.type = type;
     });
-    res.send(data);
+
+    res.send(sessions);
   }, next);
 });
 

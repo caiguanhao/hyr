@@ -105,22 +105,6 @@ config(function (
               session: _.map(sessions, 'session')
             }
           }).then(function (res) {
-            _.each(res.data, function (session) {
-              session.balance = 50000;
-              if (!(session.balance > 10000)) {
-                return;
-              }
-              var quantity = Math.floor(session.balance / 10000);
-              var quantities = [];
-              _.times(quantity, function (n) {
-                quantities.push({
-                  name: (n + 1) + '万',
-                  value: n + 1
-                });
-              });
-              session.quantity = quantity;
-              session.quantities = quantities;
-            });
             _.each(sessions, function (session) {
               _.assign(session, _.find(res.data, { session: session.session }));
             });
@@ -243,6 +227,8 @@ controller('MainCtrl', function (
       sess = _.find(self.sessions, { session: self.session.session });
     }
     self.session = sess || self.sessions[0];
+    self.product = self.session.product || '103';
+    self.type = self.session.type || '2';
   });
 
   this.status = Status;
@@ -357,7 +343,6 @@ controller('MainCtrl', function (
       id: '105', name: '24个月 - 过往年化收益率14.00%'
     }
   ];
-  this.product = '103';
 
   this.types = [
     {
@@ -366,5 +351,4 @@ controller('MainCtrl', function (
       name: '收益返还', value: '2'
     }
   ];
-  this.type = '2';
 });

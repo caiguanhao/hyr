@@ -115,6 +115,8 @@ function getInfo (session) {
       getAccountInfo(ret[1].body)
     ]);
   }).then(function (ret) {
+    var balance = +ret[0][0].value || 50000;
+
     var info = ret[0].concat(ret[2]);
     var alive = !!info.length;
     info.unshift({
@@ -125,7 +127,8 @@ function getInfo (session) {
       alive: alive,
       session: session,
       records: ret[1],
-      info: info
+      info: info,
+      balance: balance
     };
   });
 }
