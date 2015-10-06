@@ -2,6 +2,7 @@ var _ = require('lodash');
 var Q = require('q');
 var fs = require('fs');
 var lib = require('./lib');
+var logger = require('bunyan').createLogger({ name: 'hyr' });
 var getInfo = require('./info');
 var express = require('express');
 var bodyParser = require('body-parser');
@@ -155,6 +156,7 @@ app.get('*', function (req, res, next) {
 });
 
 app.use(function (err, req, res, next) {
+  logger.error(err);
   if (err && err.code === 'ENOENT') {
     return next();
   }

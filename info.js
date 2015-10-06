@@ -115,7 +115,7 @@ function getInfo (session) {
       getAccountInfo(ret[1].body)
     ]);
   }).then(function (ret) {
-    var balance = +ret[0][0].value || 50000;
+    var balance = (ret[0][0] ? +ret[0][0].value : 0) || 50000;
     var account = _.filter(ret[2], function (a) {
       return a.value !== '未填写';
     });
@@ -138,27 +138,35 @@ function getInfo (session) {
 function getRecords (html) {
   var get = 0;
   var ret = [{
-    key: '定利宝出借记录',
-    value: []
+    name: '定利宝出借记录',
+    keys: [],
+    records: []
   }, {
-    key: '散标出借记录',
-    value: []
+    name: '散标出借记录',
+    keys: [],
+    records: []
   }];
   var tableIndex = -1;
+  var trIndex = -1;
   var deferred = Q.defer();
   var parser = new htmlparser.Parser({
     onopentag: function (name, attrs) {
       if (get === 0 && name === 'table' && /sy_tabel_jilv/.test(attrs.class)) {
         get = 1;
+        trIndex = -1;
         tableIndex++;
       }
       if (get > 0) {
-        if (name === 'th') {
+        get = 1;
+        if (name === 'tr') {
+          trIndex++;
+          if (trIndex > 0) {
+            ret[tableIndex].records[trIndex - 1] = [];
+          }
+        } else if (name === 'th') {
           get = 2;
         } else if (name === 'td') {
-          if (get < 3) get = 3;
-        } else {
-          get = 1;
+          get = 3;
         }
       }
     },
@@ -172,23 +180,17 @@ function getRecords (html) {
       text = text.trim();
       if (!text) return;
       if (get === 2) {
-        ret[tableIndex].value.push({
-          key: text
-        });
+        ret[tableIndex].keys.push(text);
       } else {
-        ret[tableIndex].value[get - 3].value = text;
-        get++;
+        ret[tableIndex].records[trIndex - 1].push(text);
       }
     },
     onend: function () {
       _.each(ret, function (r) {
-        var hasValue = 0;
-        _.each(r.value, function (sr) {
-          if (sr.value) hasValue++;
+        var keyLen = r.keys.length;
+        _.remove(r.records, function (rec) {
+          return rec.length !== keyLen;
         });
-        if (hasValue < 2) {
-          r.value = [];
-        }
       });
       deferred.resolve(ret);
     }

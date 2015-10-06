@@ -74,14 +74,14 @@
       </div>
     </form>
     <table class="table" ng-repeat="record in main.session.records"
-      ng-if="record.value.length">
-      <caption class="text-center" ng-bind="record.key"></caption>
+      ng-if="record.records.length">
+      <caption class="text-center" ng-bind="record.name"></caption>
       <tbody>
         <tr>
-          <td ng-repeat="item in record.value" ng-bind="item.key"></td>
+          <td ng-repeat="key in record.keys" ng-bind="key"></td>
         </tr>
-        <tr>
-          <td ng-repeat="item in record.value" ng-bind="item.value"></td>
+        <tr ng-repeat="record in record.records">
+          <td ng-repeat="item in record" ng-bind="item"></td>
         </tr>
       </tbody>
     </table>
