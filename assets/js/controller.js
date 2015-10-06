@@ -79,6 +79,39 @@ directive('info', function (
     }
   };
 }).
+service('SessionReloadInterval', function (
+  $interval,
+  localStorageService
+) {
+  this.interval = null;
+  this.func = null;
+  this.time = +localStorageService.get('interval') || 30000;
+
+  this.list = [
+    { key: '5秒',   value: 5000   },
+    { key: '10秒',  value: 10000  },
+    { key: '30秒',  value: 30000  },
+    { key: '1分钟', value: 60000  },
+    { key: '2分钟', value: 120000 },
+    { key: '5分钟', value: 300000 }
+  ];
+
+  this.set = function (time) {
+    localStorageService.set('interval', time);
+    this.time = time;
+    $interval.cancel(this.interval);
+    this.start();
+  };
+
+  this.start = function (func) {
+    if (func) {
+      this.func = func;
+    }
+    if (angular.isFunction(this.func)) {
+      this.interval = $interval(this.func, this.time);
+    }
+  };
+}).
 config(function (
   $routeProvider
 ) {
@@ -89,9 +122,9 @@ config(function (
     resolve: {
       Sessions: function (
         $http,
-        $interval,
         localStorageService,
-        Session
+        Session,
+        SessionReloadInterval
       ) {
         var cached = [];
 
@@ -120,9 +153,9 @@ config(function (
           });
         }
 
-        $interval(function () {
+        SessionReloadInterval.start(function () {
           get();
-        }, 5000);
+        });
 
         return get();
       }
@@ -212,6 +245,7 @@ controller('MainCtrl', function (
   localStorageService,
   Client,
   Session,
+  SessionReloadInterval,
   Sessions,
   Status
 ) {
@@ -351,4 +385,6 @@ controller('MainCtrl', function (
       name: '收益返还', value: '2'
     }
   ];
+
+  this.interval = SessionReloadInterval;
 });

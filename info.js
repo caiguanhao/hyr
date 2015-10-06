@@ -116,8 +116,10 @@ function getInfo (session) {
     ]);
   }).then(function (ret) {
     var balance = +ret[0][0].value || 50000;
-
-    var info = ret[0].concat(ret[2]);
+    var account = _.filter(ret[2], function (a) {
+      return a.value !== '未填写';
+    });
+    var info = ret[0].concat(account);
     var alive = !!info.length;
     info.unshift({
       key: '更新时间',

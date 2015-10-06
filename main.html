@@ -92,6 +92,20 @@
   <div class="col-sm-4">
     <div ng-if="main.session.info">
       <table class="table">
+        <thead>
+          <tr>
+            <td>更新频率</td>
+            <td>
+              <div class="btn-group btn-group-xs">
+                <button type="button" class="btn btn-default"
+                  ng-class="{active: main.interval.time === interval.value}"
+                  ng-bind="interval.key"
+                  ng-click="main.interval.set(interval.value)"
+                  ng-repeat="interval in main.interval.list"></button>
+              </div>
+            </td>
+          </tr>
+        </thead>
         <tbody>
           <tr ng-repeat="item in main.session.info" ng-if="item.value">
             <td ng-bind="item.key"></td>
