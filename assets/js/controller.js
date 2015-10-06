@@ -1,14 +1,40 @@
 angular.module('hyr').
+service('captchaData', function (
+  $http,
+  $timeout
+) {
+  var data;
+
+  this.timeout = undefined;
+
+  function reset () {
+    data = undefined;
+    $timeout.cancel(this.timeout);
+  }
+
+  this.reset = reset;
+  this.get = function (forceReload) {
+    if (data && !forceReload) {
+      return data;
+    }
+    data = $http.get('/verify');
+    this.timeout = $timeout(function () {
+      reset();
+    }, 2 * 60 * 1000);
+    return data;
+  };
+}).
 directive('captcha', function (
-  $http
+  $http,
+  captchaData
 ) {
   return {
     scope: {
       captcha: '='
     },
     link: function ($scope, $element, $attrs) {
-      function reloadCaptcha () {
-        $http.get('/verify').then(function (res) {
+      function reloadCaptcha (forceReload) {
+        captchaData.get(forceReload).then(function (res) {
           $scope.captcha = res.data.session;
           $element.attr('src', 'data:image/png;base64,' + res.data.captcha);
         });
@@ -63,44 +89,58 @@ config(function (
     resolve: {
       Sessions: function (
         $http,
+        $interval,
         localStorageService,
         Session
       ) {
-        var sessions = localStorageService.get('sessions');
-        if (!angular.isArray(sessions) || !sessions[0]) {
-          return;
-        }
-        return $http.get('/info', {
-          params: {
-            session: _.map(sessions, 'session')
+        var cached = [];
+
+        function get () {
+          var sessions = localStorageService.get('sessions');
+          if (!angular.isArray(sessions) || !sessions[0]) {
+            return cached;
           }
-        }).then(function (res) {
-          _.each(res.data, function (session) {
-            if (!(session.balance > 10000)) {
-              return;
+          return $http.get('/info', {
+            params: {
+              session: _.map(sessions, 'session')
             }
-            var quantity = Math.floor(session.balance / 10000);
-            var quantities = [];
-            _.times(quantity, function (n) {
-              quantities.push({
-                name: (n + 1) + '万',
-                value: n + 1
+          }).then(function (res) {
+            _.each(res.data, function (session) {
+              session.balance = 50000;
+              if (!(session.balance > 10000)) {
+                return;
+              }
+              var quantity = Math.floor(session.balance / 10000);
+              var quantities = [];
+              _.times(quantity, function (n) {
+                quantities.push({
+                  name: (n + 1) + '万',
+                  value: n + 1
+                });
               });
+              session.quantity = quantity;
+              session.quantities = quantities;
             });
-            session.quantity = quantity;
-            session.quantities = quantities;
+            _.each(sessions, function (session) {
+              _.assign(session, _.find(res.data, { session: session.session }));
+            });
+            var removed = _.remove(sessions, function (sess) {
+              return !sess.alive;
+            });
+            if (removed.length) {
+              Session.save(sessions);
+            }
+            cached.length = 0;
+            _.assign(cached, sessions);
+            return cached;
           });
-          _.each(sessions, function (session) {
-            _.assign(session, _.find(res.data, { session: session.session }));
-          });
-          var removed = _.remove(sessions, function (sess) {
-            return !sess.alive;
-          });
-          if (removed.length) {
-            Session.save(sessions);
-          }
-          return sessions;
-        });
+        }
+
+        $interval(function () {
+          get();
+        }, 5000);
+
+        return get();
       }
     }
   });
@@ -132,31 +172,59 @@ service('Status', function (
     return this.statuses.join('\n');
   };
 
+  function pad (n) {
+    return n < 10 ? '0' + n : n;
+  }
+
+  function now () {
+    var t = new Date();
+    return pad(t.getHours()) + ':' + pad(t.getMinutes()) + ':' + pad(t.getSeconds());
+  }
+
+  var repeated = 1;
   this.add = function (msg) {
-    this.statuses.unshift(msg);
-    if (this.statuses.length > this.max) {
-      this.statuses.length = this.max;
+    var time = '[' + now() + ']';
+    var first = this.statuses[0];
+    if (first && first.slice(first.indexOf(' ') + 1) === msg) {
+      repeated++;
+      this.statuses[0] = time + '[' + repeated + '] ' + msg;
+    } else {
+      repeated = 1;
+      this.statuses.unshift(time + '[1] ' + msg);
+      if (this.statuses.length > this.max) {
+        this.statuses.length = this.max;
+      }
     }
   };
 }).
 service('Client', function (
 ) {
   this.client = undefined;
+  this.clientUrl = undefined;
 
   this.connect = function (sessions) {
     var url = 'ws://' + window.location.hostname + ':8080/?';
     url += _.map(sessions, function (sess) {
       return 'session=' + sess.session;
     }).join('&');
-    this.client = new WebSocket(url);;
+    if (this.clientUrl === url) {
+      return this.client;
+    }
+    if (this.client) {
+      this.client.close();
+    }
+    this.clientUrl = url;
+    this.client = new WebSocket(url);
     return this.client;
   };
 }).
 controller('MainCtrl', function (
   $filter,
   $http,
+  $q,
   $route,
   $scope,
+  captchaData,
   localStorageService,
   Client,
   Session,
@@ -165,16 +233,24 @@ controller('MainCtrl', function (
 ) {
   var self = this;
 
-  this.sessions = Sessions || [];
-  this.session = this.sessions[0];
+  this.sessions = Sessions;
+
+  $scope.$watchCollection(function () {
+    return Sessions;
+  }, function () {
+    var sess;
+    if (self.session) {
+      sess = _.find(self.sessions, { session: self.session.session });
+    }
+    self.session = sess || self.sessions[0];
+  });
 
   this.status = Status;
 
   var ws = Client.connect(this.sessions);
   ws.onmessage = function (msg) {
-    var date = '[' + new Date(msg.timeStamp).toJSON() + '] ';
     $scope.$apply(function () {
-      self.status.add(date + msg.data);
+      self.status.add(msg.data);
     });
   };
 
@@ -207,6 +283,7 @@ controller('MainCtrl', function (
       session: self.captcha_session,
       captcha: self.captcha
     }).then(function (res) {
+      captchaData.reset();
       _.remove(self.sessions, function (sess) {
         return sess.name === res.data.username;
       });
@@ -227,9 +304,11 @@ controller('MainCtrl', function (
     self.username = '';
     self.password = '';
     self.captcha = '';
-    _.remove(self.sessions, self.session);
-    Session.save(self.sessions);
-    $route.reload();
+    $q.when(this.abort()).finally(function () {
+      _.remove(self.sessions, self.session);
+      Session.save(self.sessions);
+      $route.reload();
+    });
   };
 
   this.start = function () {
@@ -237,13 +316,16 @@ controller('MainCtrl', function (
     if (!angular.isObject(session)) {
       return;
     }
-    $http.post('/start', {
+    if (session.started) {
+      return;
+    }
+    return $http.post('/start', {
       product: self.product,
       type: self.type,
       quantity: session.quantity,
       session: session.session
     }).then(function () {
-      self.started = true;
+      session.started = true;
     });
   };
 
@@ -252,10 +334,13 @@ controller('MainCtrl', function (
     if (!angular.isObject(session)) {
       return;
     }
-    $http.post('/start', {
+    if (!session.started) {
+      return;
+    }
+    return $http.post('/abort', {
       session: session.session
     }).then(function () {
-      self.started = false;
+      session.started = false;
     });
   };
 

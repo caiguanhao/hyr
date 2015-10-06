@@ -23,7 +23,7 @@
             maxlength="4" required ng-model="main.captcha">
         </div>
         <div class="col-sm-2">
-          <a href ng-click="reloadCaptcha()">
+          <a href ng-click="reloadCaptcha(true)">
             <img class="captcha" captcha="main.captcha_session">
           </a>
         </div>
@@ -41,7 +41,8 @@
         </div>
         <div class="col-sm-2">
           <button type="button" class="btn btn-default"
-            ng-disabled="main.loggingin" ng-click="main.next()">下一个</button>
+            ng-disabled="main.loggingin || main.sessions.length < 2"
+            ng-click="main.next()">下一个</button>
         </div>
         <div class="col-sm-2">
           <button type="button" class="btn btn-default"
@@ -49,7 +50,7 @@
         </div>
       </div>
     </form>
-    <form class="form-horizontal" ng-submit="main.started ? main.abort() : main.start()">
+    <form class="form-horizontal" ng-submit="main.session.started ? main.abort() : main.start()">
       <div class="form-group">
         <label class="col-sm-2 control-label">产品</label>
         <div class="col-sm-3">
@@ -65,8 +66,10 @@
             ng-options="quantity.value as quantity.name for quantity in main.session.quantities"></select>
         </div>
         <div class="col-sm-2">
-          <button type="submit" class="btn btn-default" ng-disabled="!main.session.quantities.length"
-            ng-bind="main.started ? '结束抢' : '开始抢'"></button>
+          <button type="submit" class="btn btn-default"
+            ng-class="main.session.started ? 'btn-danger' : 'btn-success'"
+            ng-disabled="!main.session.quantities.length"
+            ng-bind="main.session.started ? '结束抢' : '开始抢'"></button>
         </div>
       </div>
     </form>

@@ -38,6 +38,11 @@ function request (method, url, data, addHeader) {
     method: method,
     headers: headers
   }, function (res) {
+    if (res.statusCode < 100 || res.statusCode > 399) {
+      deferred.reject(res.statusMessage);
+      return;
+    }
+
     res.setEncoding('utf-8');
 
     var body = '';
@@ -65,7 +70,12 @@ function request (method, url, data, addHeader) {
   if (postData) {
     req.write(postData);
   }
+
   req.end();
+
+  req.setTimeout(5000, function () {
+    deferred.reject('timeout');
+  });
 
   return deferred.promise;
 }

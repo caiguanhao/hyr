@@ -18,41 +18,6 @@ app.get('/verify', function (req, res, next) {
   }, next);
 });
 
-app.get('/info', function (req, res, next) {
-  var sessions = req.query.session;
-  if (_.isString(sessions)) {
-    sessions = [sessions];
-  } else if (!_.isArray(sessions)) {
-    sessions = [];
-  }
-  Q.all(_.map(sessions, function (session) {
-    return getInfo(session);
-  })).then(function (data) {
-    res.send(data);
-  }, next);
-});
-
-app.post('/login', bodyParser.json(), function (req, res, next) {
-  var data = {
-    'LoginForm[username]': req.body.username,
-    'LoginForm[password]': req.body.password,
-    'LoginForm[verifyCode]': req.body.captcha
-  };
-  lib.request('POST', '/site/login.html', data, {
-    'Cookie': 'PHPSESSID=' + req.body.session
-  }).then(function (resp) {
-    var session = lib.getSession(resp.headers);
-    if (!session) {
-      throw '密码或验证码错误。';
-    }
-    res.send({
-      username: req.body.username,
-      session: session
-    });
-  }).catch(next);
-});
-
-var url = require('url');
 var WebSocketServer = require('ws').Server;
 var wss = new WebSocketServer({
   port: 8080
@@ -62,13 +27,14 @@ wss.on('connection', function (ws) {
 });
 
 function sendMessage (session, data) {
-  var clients = wss.clients;
-  for (var i = 0; i < clients.length; i++) {
-    var client = clients[i];
-    var u = url.parse(client.upgradeReq.url, true);
-    if (u.query.session === session) {
-      client.send(JSON.stringify(data));
-    }
+  var clients = _.filter(wss.clients, function (client) {
+    return client.upgradeReq.url.indexOf(session) > -1;
+  });
+  if (clients.length > 0) {
+    var content = typeof data === 'string' ? data : JSON.stringify(data);
+    _.each(clients, function (client) {
+      client.send(content);
+    });
   }
 }
 
@@ -103,16 +69,49 @@ app.post('/start', bodyParser.json(), function (req, res, next) {
     'authcode': ''
   };
   loopStartData[req.body.session] = data;
-  res.send({
-    message: 'OK'
-  });
+  res.send({ message: 'OK' });
 });
 
 app.post('/abort', bodyParser.json(), function (req, res, next) {
   delete loopStartData[req.body.session];
-  res.send({
-    message: 'OK'
-  });
+  res.send({ message: 'OK' });
+});
+
+app.get('/info', function (req, res, next) {
+  var sessions = req.query.session;
+  if (_.isString(sessions)) {
+    sessions = [sessions];
+  } else if (!_.isArray(sessions)) {
+    sessions = [];
+  }
+  Q.all(_.map(sessions, function (session) {
+    return getInfo(session);
+  })).then(function (data) {
+    _.each(data, function (sess) {
+      sess.started = !!loopStartData[sess.session];
+    });
+    res.send(data);
+  }, next);
+});
+
+app.post('/login', bodyParser.json(), function (req, res, next) {
+  var data = {
+    'LoginForm[username]': req.body.username,
+    'LoginForm[password]': req.body.password,
+    'LoginForm[verifyCode]': req.body.captcha
+  };
+  lib.request('POST', '/site/login.html', data, {
+    'Cookie': 'PHPSESSID=' + req.body.session
+  }).then(function (resp) {
+    var session = lib.getSession(resp.headers);
+    if (!session) {
+      throw '密码或验证码错误。';
+    }
+    res.send({
+      username: req.body.username,
+      session: session
+    });
+  }).catch(next);
 });
 
 app.get('*', function (req, res, next) {
