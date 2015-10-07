@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html ng-app="hyr">
+<html>
 <head>
   <meta charset="UTF-8">
   <title>Heng Yi Rong</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="icon" href="data:;base64,iVBORw0KGgo=">
+  <!-- build:css(.) /bootstrap.css -->
   <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap.css">
   <link rel="stylesheet" href="/node_modules/bootstrap/dist/css/bootstrap-theme.css">
+  <!-- endbuild -->
   <base href="/">
   <style>
     .main {
@@ -20,13 +22,20 @@
     }
   </style>
 </head>
-<body>
+<body ng-app="hyr">
   <div class="main container" ng-view></div>
+  <!-- build:js(.) /vendors.js -->
   <script src="/node_modules/lodash/index.js"></script>
   <script src="/node_modules/angular/angular.js"></script>
   <script src="/node_modules/angular-route/angular-route.js"></script>
   <script src="/node_modules/angular-local-storage/dist/angular-local-storage.js"></script>
+  <!-- endbuild -->
+  <!-- build:js({.,.tmp}) /app.js -->
   <script src="/assets/js/main.js"></script>
   <script src="/assets/js/controller.js"></script>
+  <!-- @if PRODUCTION=true !>
+  <script src="/templates.js"></script>
+  <!-- @endif -->
+  <!-- endbuild -->
 </body>
 </html>

@@ -6,12 +6,9 @@ var logger = require('bunyan').createLogger({ name: 'hyr' });
 var getInfo = require('./info');
 var express = require('express');
 var bodyParser = require('body-parser');
+var serveDist = false;
 
 var app = express();
-
-app.get('/', function (req, res) {
-  fs.createReadStream('index.html').pipe(res);
-});
 
 app.get('/verify', function (req, res, next) {
   lib.getCaptcha().then(function (data) {
@@ -147,8 +144,12 @@ app.post('/login', bodyParser.json(), function (req, res, next) {
 });
 
 app.get('*', function (req, res, next) {
-  var file = req.url.replace(/^\/+/, '');
-  var stream = fs.createReadStream(file);
+  var file = req.url;
+  if (/\/$/.test(file)) {
+    file += 'index.html';
+  }
+  file = file.replace(/^\/+/, '');
+  var stream = fs.createReadStream((serveDist ? 'dist/latest/' : '') + file);
   stream.on('error', function (err) {
     next(err);
   });
@@ -171,5 +172,5 @@ var server = app.listen(3000, 'localhost', function () {
   var host = server.address().address;
   var port = server.address().port;
 
-  console.log('Listening at http://%s:%s', host, port);
+  logger.info('Listening at http://%s:%s', host, port);
 });
