@@ -1,6 +1,7 @@
 var del = require('del');
 var rev = require('gulp-rev');
 var gulp = require('gulp');
+var gzip = require('gulp-gzip');
 var filter = require('gulp-filter');
 var uglify = require('gulp-uglify');
 var useref = require('gulp-useref');
@@ -57,6 +58,12 @@ gulp.task('build', function () {
     pipe(gulp.dest(dist));
 });
 
+gulp.task('gzip', function () {
+  return gulp.src(dist + '/*').
+    pipe(gzip()).
+    pipe(gulp.dest(dist));
+});
+
 gulp.task('release', function (done) {
   require('child_process').exec('ln -nfs ' + VER + ' dist/latest', done);
 });
@@ -81,6 +88,7 @@ gulp.task('default', function (done) {
     ['clean'],
     ['views'],
     ['build'],
+    ['gzip'],
     ['release'],
     ['clean-dist'],
     done
