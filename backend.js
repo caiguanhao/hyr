@@ -94,7 +94,7 @@ backend.get('/info', function (req, res, next) {
       var product = null;
       var type = null;
 
-      if (sess.balance > 10000) {
+      if (sess.balance >= 10000) {
         quantity = Math.floor(sess.balance / 10000);
         quantities = [];
         _.times(quantity, function (n) {
