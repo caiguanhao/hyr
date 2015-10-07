@@ -1,0 +1,13 @@
+frontend:
+  build: .
+  command: ["npm", "run", "build"]
+  volumes:
+    - /srv/hyr/dist:/hyr/dist
+
+app:
+  build: .
+  command: ["npm", "run", "start"]
+  restart: always
+  mem_limit: 100M
+  ports:
+    - '127.0.0.1:49820:3000'

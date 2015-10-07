@@ -4,7 +4,9 @@
   "description": "Heng Yi Rong",
   "main": "index.js",
   "scripts": {
-    "test": "mocha"
+    "test": "mocha",
+    "start": "node index.js | bunyan -o short",
+    "build": "gulp"
   },
   "repository": {
     "type": "git",
