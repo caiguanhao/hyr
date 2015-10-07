@@ -17,7 +17,7 @@ service('captchaData', function (
     if (data && !forceReload) {
       return data;
     }
-    data = $http.get('/verify');
+    data = $http.get('/_/verify');
     this.timeout = $timeout(function () {
       reset();
     }, 2 * 60 * 1000);
@@ -146,7 +146,7 @@ config(function (
           if (!angular.isArray(sessions) || !sessions[0]) {
             return cached;
           }
-          return $http.get('/info', {
+          return $http.get('/_/info', {
             params: {
               session: _.map(sessions, 'session')
             }
@@ -310,7 +310,7 @@ controller('MainCtrl', function (
 
   this.login = function () {
     this.loggingin = true;
-    $http.post('/login', {
+    $http.post('/_/login', {
       username: self.username,
       password: self.password,
       session: self.captcha_session,
@@ -352,7 +352,7 @@ controller('MainCtrl', function (
     if (session.started) {
       return;
     }
-    return $http.post('/start', {
+    return $http.post('/_/start', {
       product: self.product,
       type: self.type,
       quantity: session.quantity,
@@ -370,7 +370,7 @@ controller('MainCtrl', function (
     if (!session.started) {
       return;
     }
-    return $http.post('/abort', {
+    return $http.post('/_/abort', {
       session: session.session
     }).then(function () {
       session.started = false;
