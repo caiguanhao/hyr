@@ -261,8 +261,8 @@ controller('MainCtrl', function (
       sess = _.find(self.sessions, { session: self.session.session });
     }
     self.session = sess || self.sessions[0];
-    self.product = self.session.product || '103';
-    self.type = self.session.type || '2';
+    self.product = (self.session ? self.session.product : undefined) || '103';
+    self.type = (self.session ? self.session.type : undefined) || '2';
   });
 
   this.status = Status;

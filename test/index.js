@@ -1,12 +1,16 @@
+var fs = require('fs');
 var expect = require('chai').expect;
 var rewire = require('rewire');
 var getInfo = rewire('../info');
-var fs = require('fs');
 
-describe('Records', function () {
-  it('should get all info in table', function () {
+function readFile (file) {
+  return fs.readFileSync(file).toString();
+}
+
+describe('Get Info', function () {
+  it('should get records table', function () {
     var getRecords = getInfo.__get__('getRecords');
-    var recordsHTML = fs.readFileSync(__dirname + '/fixtures/records.html').toString();
+    var recordsHTML = readFile(__dirname + '/fixtures/records.html');
     expect(getRecords).to.be.a('function');
     return getRecords(recordsHTML).then(function (records) {
       expect(records).to.be.an('array');
@@ -55,6 +59,48 @@ describe('Records', function () {
           ],
           records: []
         }
+      ]);
+    });
+  });
+
+  it('should get account info', function () {
+    var getAccountInfo = getInfo.__get__('getAccountInfo');
+    var accountHTML = readFile(__dirname + '/fixtures/account.html');
+    expect(getAccountInfo).to.be.a('function');
+    return getAccountInfo(accountHTML).then(function (account) {
+      expect(account).to.be.an('array');
+      expect(account).to.deep.equal([
+        { key: '用户名', value: '13000000000' },
+        { key: '真实姓名', value: '张三' },
+        { key: '出生日期', value: '1970-01-01' },
+        { key: '身份证号', value: '440***********0000' },
+        { key: '性别', value: '男' },
+        { key: '汇付用户名', value: 'hclt_hc_13000000000' },
+        { key: '汇付号', value: '6000060050000000' },
+        { key: '婚姻状态', value: '未填写' },
+        { key: '最高学历', value: '未填写' },
+        { key: '毕业院校', value: '未填写' },
+        { key: '居住地址', value: '未填写' },
+        { key: '公司行业', value: '未填写' },
+        { key: '公司规模', value: '未填写' },
+        { key: '职位状态', value: '未填写' },
+        { key: '月收入', value: '未填写' }
+      ]);
+    });
+  });
+
+  it('should get balance info', function () {
+    var getBalance = getInfo.__get__('getBalance');
+    var balanceHTML = readFile(__dirname + '/fixtures/balance.html');
+    expect(getBalance).to.be.a('function');
+    return getBalance(balanceHTML).then(function (balance) {
+      expect(balance).to.be.an('array');
+      expect(balance).to.deep.equal([
+        { key: '可用余额', value: '0.00' },
+        { key: '冻结金额', value: '0.00' },
+        { key: '待收本金', value: '100000.00' },
+        { key: '账户总资产', value: '112000.00' },
+        { key: '待收收益', value: '12000.00' }
       ]);
     });
   });

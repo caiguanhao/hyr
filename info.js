@@ -44,54 +44,50 @@ function getBalance (html) {
 }
 
 function getAccountInfo (html) {
+  var get = 0;
   var info = [];
-  var range = -1;
-  var rangeColspan = -1;
+  var key = undefined;
+  var value = undefined;
   var deferred = Q.defer();
   var parser = new htmlparser.Parser({
     onopentag: function (name, attrs) {
-      if (name === 'table' && attrs.class === 'dlm_jbxx') {
-        range = 0;
+      if (get === 0 && name === 'table' && attrs.class === 'dlm_jbxx') {
+        get = 1;
       }
-      if (range > -1) {
+      if (get > 0) {
         if (name === 'tr') {
-          range = 1;
-          rangeColspan = -1;
-        }
-        if (name === 'td') {
-          range++;
-          if (+attrs.colspan > 1) {
-            rangeColspan = 0;
-          }
+          get = 2;
+        } else if (name === 'td') {
+          get++;
         }
       }
     },
     onclosetag: function (name) {
-      if (info && name === 'table') {
-        range = -1;
+      if (name === 'tr') {
+        info.push({
+          key: key,
+          value: value
+        });
+        key = undefined;
+        value = undefined;
+      } else if (name === 'table') {
+        get = -1;
       }
     },
     ontext: function (text) {
-      if (range > 1 && range < 4) {
-        if (rangeColspan < 1) {
-          info.push(text.trim());
-        }
-        if (rangeColspan > -1) {
-          rangeColspan++;
-        }
+      if (get < 3) return;
+      text = text.trim();
+      if (!text) return;
+      if (get === 3) {
+        key = text.replace('：', '');
+      } else if (get === 4) {
+        value = text;
       }
     },
     onend: function () {
-      var ret = [];
-      info.forEach(function (val, key) {
-        if ((key + 1) % 2 === 0) {
-          ret.push({
-            key: info[key - 1].replace('：', ''),
-            value: val
-          });
-        }
-      });
-      deferred.resolve(ret);
+      deferred.resolve(_.filter(info, function (i) {
+        return !_.isUndefined(i.value);
+      }));
     }
   }, {
     decodeEntities: true
