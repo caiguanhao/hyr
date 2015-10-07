@@ -81,6 +81,7 @@ directive('info', function (
 }).
 service('SessionReloadInterval', function (
   $interval,
+  $timeout,
   localStorageService
 ) {
   this.interval = null;
@@ -92,24 +93,36 @@ service('SessionReloadInterval', function (
     { key: '10秒',  value: 10000  },
     { key: '30秒',  value: 30000  },
     { key: '1分钟', value: 60000  },
-    { key: '2分钟', value: 120000 },
     { key: '5分钟', value: 300000 }
   ];
 
   this.set = function (time) {
     localStorageService.set('interval', time);
     this.time = time;
-    $interval.cancel(this.interval);
     this.start();
   };
 
   this.start = function (func) {
-    if (func) {
+    $interval.cancel(this.interval);
+    if (angular.isFunction(func)) {
       this.func = func;
     }
     if (angular.isFunction(this.func)) {
       this.interval = $interval(this.func, this.time);
     }
+  };
+
+  this.now = true;
+
+  this.reload = function () {
+    this.now = false;
+    if (angular.isFunction(this.func)) {
+      this.func();
+    }
+    this.start();
+    $timeout(function () {
+      this.now = true;
+    }.bind(this), 2000);
   };
 }).
 config(function (

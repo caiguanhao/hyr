@@ -98,6 +98,9 @@
             <td>
               <div class="btn-group btn-group-xs">
                 <button type="button" class="btn btn-default"
+                  ng-disabled="!main.interval.now"
+                  ng-click="main.interval.reload()">立即</button>
+                <button type="button" class="btn btn-default"
                   ng-class="{active: main.interval.time === interval.value}"
                   ng-bind="interval.key"
                   ng-click="main.interval.set(interval.value)"
