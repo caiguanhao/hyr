@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "mocha",
-    "start": "node index.js | bunyan -o short",
+    "start": "NODE_ENV=production node index.js | bunyan -o short",
     "build": "gulp"
   },
   "repository": {

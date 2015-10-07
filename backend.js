@@ -17,7 +17,7 @@ backend.get('/verify', function (req, res, next) {
 
 var WebSocketServer = ws.Server;
 var wss = new WebSocketServer({
-  port: 8080
+  port: 49821
 });
 wss.on('connection', function (ws) {
   ws.send('Welcome');

@@ -243,7 +243,7 @@ service('Client', function (
   this.clientUrl = undefined;
 
   this.connect = function (sessions) {
-    var url = 'ws://' + window.location.hostname + ':8080/?';
+    var url = 'ws://' + window.location.hostname + ':49821/?';
     url += _.map(sessions, function (sess) {
       return 'session=' + sess.session;
     }).join('&');
